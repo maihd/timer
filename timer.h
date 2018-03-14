@@ -9,6 +9,23 @@
 extern "C" {
 #endif
 /* BEGIN OF EXTERN "C" */
+
+
+typedef struct
+{
+    enum
+    {
+	TIMER_STARTED,
+	TIMER_STOPPED,
+    }    state;
+    long start;
+    long ticks;
+} timer_t;    
+
+__timer__ void   timer_init(timer_t* timer);
+__timer__ void   timer_start(timer_t* timer);
+__timer__ void   timer_stop(timer_t* timer);
+__timer__ double timer_seconds(timer_t* timer);
     
 #ifdef WINDOWS
 /**
@@ -36,6 +53,30 @@ __timer__ long perf_frequency(void);
 
 #ifdef TIMER_IMPL
 /* BEGIN OF TIMER_IMPL */
+
+void timer_init(timer_t* timer)
+{
+    timer->state = TIMER_STOPPED;
+    timer->start = 0;
+    timer->ticks = 0;
+}
+    
+void timer_start(timer_t* timer)
+{
+    timer->state = TIMER_START;
+    timer->start = perf_counter();
+}
+    
+void timer_stop(timer_t* timer)
+{
+    timer->state = TIMER_STOPPED;
+    timer->ticks = perf_counter() - timer->start;
+}
+
+double timer_seconds(timer_t* timer)
+{
+    return timer->ticks / perf_frequency(); 
+}
     
 # ifdef WINDOWS
 /* BEGIN OF WINDOWS */
