@@ -26,21 +26,17 @@ __timer__ void   timer_init(timer_t* timer);
 __timer__ void   timer_start(timer_t* timer);
 __timer__ void   timer_stop(timer_t* timer);
 __timer__ double timer_seconds(timer_t* timer);
-    
-#ifdef WINDOWS
+
 /**
  * Sleep the current thread with given duration in us
  */
-__timer__ int  usleep(long us);
+__timer__ int  perf_usleep(long us);
  
 /**
  * Sleep the current thread with given duration in us
  */
-__timer__ int  nanosleep(long ns);
-#else
-# include <unistd.h> /* for usleep and nanosleep */
-#endif
-
+__timer__ int  perf_nsleep(long ns);
+    
 /**
  * Query counter of the CPU performance
  */
@@ -82,12 +78,12 @@ double timer_seconds(timer_t* timer)
 /* BEGIN OF WINDOWS */
     
 # include <Windows.h>
-int usleep(long us)
+int perf_usleep(long us)
 {
-    return nanosleep(us * 1000);
+    return perf_nsleep(us * 1000);
 }
     
-int nanosleep(long ns)
+int perf_nsleep(long ns)
 {
     HANDLE        timer;
     LARGE_INTEGER times;
@@ -130,7 +126,7 @@ long perf_frequency(void)
     return result.QuadPart;
 }
 /* END OF WINDOWS */
-# else
+# elif __unix__
 /* BEGIN OF UNIX */
 # include <sys/time.h>
 # define CLOCK_ID 981999
@@ -148,6 +144,16 @@ static int has_monotonic(void)
 #else
     return 0;
 #endif
+}
+
+int perf_usleep(long us)
+{
+    return usleep(us) == 0;
+}
+
+int perf_nsleep(long ns)
+{
+    return nanosleep((struct timespec[]){{ 0, ns }}, NULL) == 0;
 }
     
 long perf_counter(void)
