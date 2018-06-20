@@ -24,7 +24,8 @@ typedef struct
 } timer_t;      
 
 __timer__ void   timer_init(timer_t* timer, int fps);
-__timer__ void   timer_fps(timer_t* timer, int fps);
+__timer__ double timer_getfps(timer_t* timer);
+__timer__ void   timer_setfps(timer_t* timer, int fps);
 __timer__ void   timer_start(timer_t* timer);
 __timer__ void   timer_stop(timer_t* timer);
 __timer__ void   timer_sleep(timer_t* timer);
@@ -65,7 +66,19 @@ void timer_init(timer_t* timer, int fps)
     timer->limit = perf_frequency() / fps;
 }
 
-void timer_fps(timer_t* timer, int fps)
+double timer_getfps(timer_t* timer)
+{
+    if (timer->state == TIMER_STOPPED)
+    {
+        return 1.0 / timer_seconds(timer);
+    }
+    else
+    {
+        return 0.0;
+    }
+}
+
+void timer_setfps(timer_t* timer, int fps)
 {
     assert(fps > 0 && fps < perf_frequency());
     
@@ -89,16 +102,20 @@ void timer_stop(timer_t* timer)
 
 void timer_sleep(timer_t* timer)
 {
-    if (timer->ticks < timer->limit)
+    if (timer->state == TIMER_STOPPED)
     {
-        double seconds = timer_seconds(timer);
-        perf_usleep((long)(seconds * 1000 * 1000));
+        if (timer->ticks < timer->limit)
+        {
+            double seconds = (double)(timer->limit - timer->ticks) / perf_frequency();
+            perf_usleep((long)(seconds * 1000 * 1000));
+            timer->ticks = timer->limit;
+        }
     }
 }
 
 double timer_seconds(timer_t* timer)
 {
-    return timer->ticks / perf_frequency(); 
+    return (double)timer->ticks / perf_frequency(); 
 }
     
 # ifdef WINDOWS
