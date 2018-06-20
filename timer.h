@@ -20,11 +20,14 @@ typedef struct
     }    state;
     long start;
     long ticks;
+    long limit;
 } timer_t;      
 
-__timer__ void   timer_init(timer_t* timer);
+__timer__ void   timer_init(timer_t* timer, int fps);
+__timer__ void   timer_fps(timer_t* timer, int fps);
 __timer__ void   timer_start(timer_t* timer);
 __timer__ void   timer_stop(timer_t* timer);
+__timer__ void   timer_sleep(timer_t* timer);
 __timer__ double timer_seconds(timer_t* timer);
 
 /**
@@ -50,11 +53,26 @@ __timer__ long perf_frequency(void);
 #ifdef TIMER_IMPL
 /* BEGIN OF TIMER_IMPL */
 
-void timer_init(timer_t* timer)
+#include <assert.h>
+
+void timer_init(timer_t* timer, int fps)
 {
+    assert(fps > 0 && fps < perf_frequency());
+
     timer->state = TIMER_STOPPED;
     timer->start = 0;
     timer->ticks = 0;
+    timer->limit = perf_frequency() / fps;
+}
+
+void timer_fps(timer_t* timer, int fps)
+{
+    assert(fps > 0 && fps < perf_frequency());
+    
+    if (timer->state == TIMER_STOPPED)
+    {
+        timer->limit = perf_frequency() / fps;
+    }
 }
     
 void timer_start(timer_t* timer)
@@ -67,6 +85,15 @@ void timer_stop(timer_t* timer)
 {
     timer->state = TIMER_STOPPED;
     timer->ticks = perf_counter() - timer->start;
+}
+
+void timer_sleep(timer_t* timer)
+{
+    if (timer->ticks < timer->limit)
+    {
+        double seconds = timer_seconds(timer);
+        perf_usleep((long)(seconds * 1000 * 1000));
+    }
 }
 
 double timer_seconds(timer_t* timer)
@@ -85,38 +112,46 @@ int perf_usleep(long us)
     
 int perf_nsleep(long ns)
 {
-    /* Actually return NTSTATUS, and 'typedef LONG NTSTATUS;' =)) */
+    /* 'NTSTATUS NTAPI NtDelayExecution(BOOL Alerted, PLARGE_INTEGER time);' */
+    /* 'typedef LONG NTSTATUS;' =)) */
     /* '#define NTAPI __stdcall' =)) */
     typedef LONG (__stdcall * NtDelayExecutionFN)(BOOL, PLARGE_INTEGER);
+
+    static int done_finding;
     static NtDelayExecutionFN NtDelayExecution;
     
-    if (!NtDelayExecution)
+    if (!NtDelayExecution && !done_finding)
     {
+        done_finding     = 1;
         HMODULE module   = GetModuleHandle(TEXT("ntdll.dll"));
         const char* func = "NtDelayExecution";
         NtDelayExecution = (NtDelayExecutionFN)GetProcAddress(module, func);
-        if (!NtDelayExecution)
-        {
-            return FALSE;
-        }
     }
     
-    LARGE_INTEGER times;
-    times.QuadPart = -ns / 100;
-    NtDelayExecution(FALSE, &times);
-    return TRUE;
+    if (NtDelayExecution)
+    {
+        LARGE_INTEGER times;
+        times.QuadPart = -ns / 100;
+        NtDelayExecution(FALSE, &times);
+        return TRUE;
+    }
+    else
+    {
+        Sleep(ns / (1000 * 1000));
+        return TRUE;
+    }
 }
 
 long perf_counter(void)
 {
     LARGE_INTEGER result;
-    return QueryPerformanceCounter(&result) ? (long)result.QuadPart : 0;
+    return QueryPerformanceCounter(&result) ? (long)result.QuadPart : GetTickCount64();
 }
 
 long perf_frequency(void)
 {
     LARGE_INTEGER result;
-    return QueryPerformanceFrequency(&result) ? (long)result.QuadPart : 0;
+    return QueryPerformanceFrequency(&result) ? (long)result.QuadPart : 1000;
 }
 /* END OF WINDOWS */
 # elif __unix__
