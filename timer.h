@@ -10,7 +10,8 @@ extern "C" {
 #endif
 /* BEGIN OF EXTERN "C" */
 
-
+#ifndef HAS_TIMER_T
+#define HAS_TIMER_T
 typedef struct
 {
     enum
@@ -21,7 +22,8 @@ typedef struct
     long start;
     long ticks;
     long limit;
-} timer_t;      
+} timer_t;
+#endif
 
 __timer__ void   timer_init(timer_t* timer, int fps);
 __timer__ double timer_getfps(timer_t* timer);
