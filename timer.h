@@ -53,6 +53,14 @@ __timer__ long perf_counter(void);
  */
 __timer__ long perf_frequency(void);
 
+/* END OF EXTERN "C" */
+#ifdef __cpluscplus
+}
+#endif
+    
+#endif /* __TIMER_H__ */
+
+
 #ifdef TIMER_IMPL
 /* BEGIN OF TIMER_IMPL */
 
@@ -264,10 +272,3 @@ long perf_frequency(void)
 
 /* END OF TIMER_IMPL */
 #endif
-
-/* END OF EXTERN "C" */
-#ifdef __cpluscplus
-}
-#endif
-    
-#endif /* __TIMER_H__ */
