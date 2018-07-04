@@ -80,6 +80,8 @@ public: /* @region: Properties */
             {
                 timer->_limit = perf::frequency() / fps;
             }
+
+			return fps;
         }
 
         inline operator int(void) const
