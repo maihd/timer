@@ -89,7 +89,8 @@ bool Timer::Sleep(Timer& timer, bool set)
 {
     if (timer.state == Timer::STOPPED && timer.ticks < timer.limit)
     {
-        Performance::MicroSleep((long)(1000 * 1000 * ((timer.limit - timer.ticks) / Performance::GetFrequency())));
+        double seconds = (timer.limit - timer.ticks) / (double)Performance::GetFrequency();
+        Performance::MicroSleep((long)(1000 * 1000 * seconds));
         if (set)
         {
             timer.ticks = timer.limit;
